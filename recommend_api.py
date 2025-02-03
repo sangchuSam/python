@@ -15,7 +15,9 @@ app = Flask(__name__)
 CORS(app)
 
 # ✅ MongoDB 연결
-client = MongoClient("mongodb+srv://pick:p2pZIQ4YNRegnZWk@recommend.oka4s.mongodb.net/recommend?retryWrites=true&w=majority")
+client = MongoClient("mongodb+srv://pick:p2pZIQ4YNRegnZWk@recommend.oka4s.mongodb.net/recommend?retryWrites=true&w=majority",
+                    tls=True
+                    )
 db = client["recommend"]
 collection = db["like"]  # ✅ 컬렉션 이름 `like`
 
