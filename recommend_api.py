@@ -4,6 +4,7 @@
 # In[ ]:
 
 
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -14,16 +15,18 @@ from sklearn.metrics.pairwise import cosine_similarity
 app = Flask(__name__)
 CORS(app)
 
-# ✅ MongoDB 연결
-client = MongoClient("mongodb+srv://pick:p2pZIQ4YNRegnZWk@recommend.oka4s.mongodb.net/recommend?retryWrites=true&w=majority",
-                    tls=True
-                    )
+# ✅ MongoDB 연결 (환경 변수 사용)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://pick:p2pZIQ4YNRegnZWk@recommend.oka4s.mongodb.net/recommend?retryWrites=true&w=majority")
+client = MongoClient(MONGO_URI, tls=True)
 db = client["recommend"]
-collection = db["like"]  # ✅ 컬렉션 이름 `like`
+collection = db["like"]
 
 # ✅ MongoDB 데이터 불러오기
 likes = list(collection.find({}, {"_id": 0, "restaurantId": 1, "name": 1, "category": 1, "priceLevel": 1}))
 df = pd.DataFrame(likes)
+
+if df.empty:
+    print("⚠️ MongoDB에서 데이터를 가져오지 못했습니다!")
 
 # ✅ 'category'와 'priceLevel'을 결합하여 특징 생성
 df["features"] = df["category"] + " " + df["priceLevel"]
@@ -52,8 +55,12 @@ def recommend_restaurant():
     if preferences not in df["category"].values:
         return jsonify({"error": "❌ 해당 카테고리의 음식점이 없습니다!"}), 400
 
-    # ✅ 입력된 카테고리와 가장 유사한 음식점 찾기
-    idx = df[df["category"] == preferences].index[0]
+    # ✅ 예외 처리 추가 (IndexError 방지)
+    try:
+        idx = df[df["category"] == preferences].index[0]
+    except IndexError:
+        return jsonify({"error": "❌ 해당 카테고리에 대한 추천 데이터가 없습니다!"}), 400
+
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
     sim_scores = sim_scores[1:6]  # 자기 자신 제외, 상위 5개 추천
@@ -64,7 +71,9 @@ def recommend_restaurant():
 
     return jsonify({"guestId": guest_id, "recommendations": recommendations})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
 
+if __name__ == "__main__":
+    # ✅ Railway가 제공하는 PORT 사용
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=True)
 
