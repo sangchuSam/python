@@ -72,17 +72,6 @@ def recommend_restaurant():
     return jsonify({"guestId": guest_id, "recommendations": recommendations})
 
 
-# Railway 용
-# PORT 값을 가져오는데, 비어있으면 8000 사용
-port = os.environ.get("PORT", "8000")
-
-# 숫자로 변환 ( 만약 port가 비어있으면 기본값 8000 사용)
-port = int(port) if port.isdigit() else 8000
-
-app.run(host="0.0.0.0", port=port, debug=True)
-
-
-# Render 용
 if __name__ == "__main__":
     # ✅ Railway가 제공하는 PORT 사용
     port = int(os.environ.get("PORT", 8000))
